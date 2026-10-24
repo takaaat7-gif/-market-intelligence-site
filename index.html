@@ -22,9 +22,9 @@
 
   <section class="hero">
     <div class="panel">
-      <span class="tag demo">PROTOTIPE — DATA SIMULASI</span>
+      <span class="tag demo" id="modeTag">LIVE FEED BETA</span>
       <h1>Satu dashboard untuk membaca<br>pasar multi-aset.</h1>
-      <p class="muted">Pantau kalender ekonomi, ekspektasi pasar, konfirmasi makro, volatilitas, dan struktur teknikal dari satu tempat.</p>
+      <p class="muted">Pantau harga spot emas indikatif, kalender ekonomi, momentum harga, dan status kualitas data dari satu tempat.</p>
       <div class="controls">
         <select id="assetSelect" aria-label="Pilih aset">
           <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option><option>NAS100</option><option>US30</option><option>US500</option><option>USOIL</option><option>UKOIL</option>
@@ -33,33 +33,28 @@
         <button class="primary" id="refreshBtn">Perbarui tampilan</button>
         <button id="exportBtn">Ekspor ringkasan CSV</button>
       </div>
-      <div class="notice">Penting: harga, persentase, agenda, dan skor di halaman ini adalah data contoh untuk demonstrasi desain. Tidak boleh digunakan sebagai dasar keputusan trading.</div>
+      <div class="notice" id="mainNotice">Data live bersifat indikatif, bukan kuotasi broker Exness. Analisis teknikal memakai sampel harga 5-menit dari penyedia, bukan candle broker M1/M5. Verifikasi harga dan spread di MT5 sebelum trading.</div>
     </div>
     <div class="panel">
       <div class="section-head" style="margin-top:0"><h2>Ringkasan kondisi</h2><span class="pill" id="nowLabel">WIB</span></div>
       <div class="metric-grid">
-        <div class="metric"><div class="label">Bias makro</div><div class="value flat" id="macroBias">Belum dinilai</div><div class="note">Menunggu feed terverifikasi</div></div>
-        <div class="metric"><div class="label">Konfirmasi teknikal</div><div class="value" id="techBias">Belum dinilai</div><div class="note">Menunggu candle valid</div></div>
-        <div class="metric"><div class="label">Volatilitas</div><div class="value" id="volatility">—</div><div class="note">ATR dan riwayat event</div></div>
-        <div class="metric"><div class="label">Kualitas data</div><div class="value flat">DEMO</div><div class="note">Tidak ada konektor live</div></div>
+        <div class="metric"><div class="label">Harga XAU/USD spot</div><div class="value" id="goldPrice">Memuat…</div><div class="note" id="goldPriceNote">Menunggu sumber harga</div></div>
+        <div class="metric"><div class="label">Momentum sampel</div><div class="value" id="techBias">Menunggu data</div><div class="note" id="techNote">EMA 9/21 pada sampel 5-menit</div></div>
+        <div class="metric"><div class="label">Rentang sampel</div><div class="value" id="volatility">—</div><div class="note">High–low dari data intraday</div></div>
+        <div class="metric"><div class="label">Kualitas data</div><div class="value flat" id="qualityValue">MEMUAT</div><div class="note" id="qualityNote">Memeriksa timestamp sumber</div></div>
       </div>
     </div>
   </section>
 
-  <div class="section-head"><h2>Market watch</h2><span class="small">Pilih aset untuk mengubah instrumen aktif</span></div>
+  <div class="section-head"><h2>Market watch</h2><span class="small">Harga live saat ini hanya tersedia untuk XAU/USD spot</span></div>
   <section class="asset-grid" id="assetGrid"></section>
 
   <div class="section-head"><h2>Analisis instrumen</h2><span class="tag" id="activeAssetTag">XAUUSD · M5</span></div>
   <section class="grid2">
     <div class="panel">
-      <div class="section-head" style="margin-top:0"><h2>Grafik ilustratif</h2><span class="pill">Bukan harga live</span></div>
-      <svg class="chart" viewBox="0 0 600 210" preserveAspectRatio="none" role="img" aria-label="Grafik ilustratif">
-        <defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#44d6a0" stop-opacity=".25"/><stop offset="100%" stop-color="#44d6a0" stop-opacity="0"/></linearGradient></defs>
-        <g stroke="#27354d" stroke-width="1"><path d="M0 30H600M0 70H600M0 110H600M0 150H600M0 190H600"/></g>
-        <path d="M0 160 L30 145 L60 155 L90 118 L120 130 L150 100 L180 112 L210 75 L240 95 L270 88 L300 120 L330 105 L360 78 L390 86 L420 58 L450 76 L480 44 L510 61 L540 35 L570 48 L600 24 L600 210 L0 210Z" fill="url(#area)"/>
-        <path d="M0 160 L30 145 L60 155 L90 118 L120 130 L150 100 L180 112 L210 75 L240 95 L270 88 L300 120 L330 105 L360 78 L390 86 L420 58 L450 76 L480 44 L510 61 L540 35 L570 48 L600 24" fill="none" stroke="#44d6a0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <div class="small">Setelah konektor harga aktif, grafik ini diganti candle OHLC dengan level dan indikator dari feed yang dipilih.</div>
+      <div class="section-head" style="margin-top:0"><h2>Grafik harga intraday</h2><span class="pill" id="chartState">Memuat data</span></div>
+      <canvas id="priceChart" class="chart" width="900" height="320" aria-label="Grafik harga intraday XAUUSD"></canvas>
+      <div class="small" id="chartNote">Sampel harga intraday sekitar 5 menit; bukan candle MT5.</div>
     </div>
     <div class="panel">
       <h2 class="card-title">Skenario yang harus dipenuhi</h2>
@@ -70,13 +65,11 @@
     </div>
   </section>
 
-  <div class="section-head"><h2>Kalender ekonomi</h2><span class="tag">Placeholder — belum live</span></div>
+  <div class="section-head"><h2>Kalender ekonomi</h2><span class="tag" id="calendarState">Menghubungkan…</span></div>
   <section class="panel table-wrap">
     <table><thead><tr><th>Waktu WIB</th><th>Peristiwa</th><th>Dampak</th><th>Actual</th><th>Forecast</th><th>Previous</th></tr></thead>
-    <tbody id="calendarRows">
-      <tr><td>Belum tersedia</td><td>Hubungkan kalender API</td><td><span class="impact">—</span></td><td>—</td><td>—</td><td>—</td></tr>
-    </tbody></table>
-    <p class="small">Kalender live memerlukan konektor sumber data yang sah. Jangan menggunakan tanggal contoh untuk menjadwalkan trading.</p>
+    <tbody id="calendarRows"><tr><td colspan="6">Mengambil kalender ekonomi…</td></tr></tbody></table>
+    <p class="small">Sumber: <a href="https://www.financecalendar.com/" target="_blank" rel="noopener">Finance Calendar</a>. Ketersediaan actual/forecast bergantung pada cakupan sumber; kolom kosong tidak diisi dengan tebakan.</p>
   </section>
 
   <div class="section-head"><h2>Konfirmasi makro</h2><span class="small">Status data aktual harus ditampilkan</span></div>
@@ -90,32 +83,44 @@
   <section class="panel grid3">
     <div><div class="card-title">Sumber resmi</div><p><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" target="_blank" rel="noopener">Federal Reserve / FOMC</a></p><p><a href="https://www.bls.gov/developers/" target="_blank" rel="noopener">BLS API</a></p><p><a href="https://apps.bea.gov/API/docs/index.htm" target="_blank" rel="noopener">BEA API</a></p></div>
     <div><div class="card-title">Data ekonomi</div><p><a href="https://fred.stlouisfed.org/docs/api/fred/overview.html" target="_blank" rel="noopener">FRED API</a></p><p><a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank" rel="noopener">CME FedWatch</a></p><p><a href="https://www.mql5.com/en/docs/python_metatrader5" target="_blank" rel="noopener">MetaTrader 5 Python</a></p></div>
-    <div><div class="card-title">Health check</div><p class="muted">API status: belum dikonfigurasi</p><p class="muted">Last successful sync: —</p><p class="muted">Scheduler: belum dipasang</p></div>
+    <div><div class="card-title">Health check</div><p class="muted" id="apiHealth">API status: menghubungkan…</p><p class="muted" id="lastSync">Last successful sync: —</p><p class="muted">Refresh browser: setiap 60 detik</p></div>
   </section>
-  <footer class="foot">Market Intelligence prototype • Tidak terhubung ke broker, tidak mengambil data live, dan tidak mengeksekusi order. Periksa lisensi API sebelum penggunaan produksi.</footer>
+  <footer class="foot">Market Intelligence • Data spot indikatif & kalender dari penyedia eksternal. Bukan kuotasi broker atau saran investasi; tidak mengeksekusi order.</footer>
 </div>
 <script>
+const GOLD_API='https://xaus.com/api/v1';
+const CAL_API='https://www.financecalendar.com/wp-json/fc/v1';
 const assets=[
- {s:"XAUUSD",n:"Gold",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"EURUSD",n:"Euro / USD",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"GBPUSD",n:"Pound / USD",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"USDJPY",n:"USD / Yen",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"BTCUSD",n:"Bitcoin",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"NAS100",n:"Nasdaq 100",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"US30",n:"Dow Jones",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"US500",n:"S&P 500",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"USOIL",n:"WTI Oil",p:"—",c:"flat",d:"Menunggu feed"},
- {s:"UKOIL",n:"Brent Oil",p:"—",c:"flat",d:"Menunggu feed"}
+ {s:'XAUUSD',n:'Gold spot',p:'—',c:'flat',d:'Memuat feed live'},
+ {s:'EURUSD',n:'Euro / USD',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'GBPUSD',n:'Pound / USD',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'USDJPY',n:'USD / Yen',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'BTCUSD',n:'Bitcoin',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'NAS100',n:'Nasdaq 100',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'US30',n:'Dow Jones',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'US500',n:'S&P 500',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'USOIL',n:'WTI Oil',p:'—',c:'flat',d:'Belum dikonfigurasi'},
+ {s:'UKOIL',n:'Brent Oil',p:'—',c:'flat',d:'Belum dikonfigurasi'}
 ];
-const grid=document.getElementById('assetGrid');
-function renderAssets(){grid.innerHTML='';assets.forEach(a=>{const el=document.createElement('button');el.className='asset'+(a.s===document.getElementById('assetSelect').value?' active':'');el.innerHTML=`<div class="symbol">${a.s}</div><div class="price">${a.p}</div><div class="small">${a.n}</div><div class="small">${a.d}</div>`;el.addEventListener('click',()=>{document.getElementById('assetSelect').value=a.s;updateSelected()});grid.appendChild(el)})}
-function updateSelected(){const a=document.getElementById('assetSelect').value;const tf=document.getElementById('tfSelect').value;document.getElementById('activeAssetTag').textContent=a+' · '+tf;renderAssets();document.getElementById('macroBias').textContent='Belum dinilai';document.getElementById('techBias').textContent='Belum dinilai';document.getElementById('volatility').textContent='—'}
-document.getElementById('assetSelect').addEventListener('change',updateSelected);
-document.getElementById('tfSelect').addEventListener('change',updateSelected);
-document.getElementById('refreshBtn').addEventListener('click',()=>{updateSelected();document.getElementById('systemStatus').textContent='Mode demo · tampilan diperbarui, data live belum aktif';const b=document.getElementById('refreshBtn');b.textContent='Tampilan diperbarui';setTimeout(()=>b.textContent='Perbarui tampilan',1300)});
-document.getElementById('exportBtn').addEventListener('click',()=>{const rows=[['Symbol','Name','Price','Status'],...assets.map(a=>[a.s,a.n,a.p,a.d])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='market-watch-demo.csv';link.click();URL.revokeObjectURL(url)});
-function updateTime(){const now=new Date();document.getElementById('nowLabel').textContent=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'short',year:'numeric'}).format(now)+' WIB'}
-renderAssets();updateSelected();updateTime();setInterval(updateTime,1000);
+const $=id=>document.getElementById(id); let intraday=[], lastSpot=null, lastCalendar=null;
+function safeText(v){return v===null||v===undefined||v===''?'—':String(v)}
+function money(v){return Number.isFinite(Number(v))?Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
+function setStatus(text){$('systemStatus').textContent=text}
+function renderAssets(){const grid=$('assetGrid');grid.innerHTML='';assets.forEach(a=>{const el=document.createElement('button');el.className='asset'+(a.s===$('assetSelect').value?' active':'');el.innerHTML=`<div class="symbol">${a.s}</div><div class="price">${a.p}</div><div class="small">${a.n}</div><div class="small">${a.d}</div>`;el.addEventListener('click',()=>{$('assetSelect').value=a.s;updateSelected()});grid.appendChild(el)})}
+function updateSelected(){const a=$('assetSelect').value,tf=$('tfSelect').value;$('activeAssetTag').textContent=a+' · '+tf;renderAssets();if(a!=='XAUUSD'){$('chartState').textContent='Feed belum tersedia';$('chartNote').textContent='Feed live saat ini hanya terhubung untuk XAU/USD spot; pilih XAUUSD untuk grafik dan analisis.'; $('techBias').textContent='Belum tersedia';$('techNote').textContent='Instrumen ini belum memiliki feed';return} updateTechnical()}
+function ema(values,period){if(!values.length)return [];const k=2/(period+1);let e=values[0];return values.map((v,i)=>{if(i)e=v*k+e*(1-k);return e})}
+function updateTechnical(){const pts=intraday.map(x=>x.p).filter(Number.isFinite);if(pts.length<10){$('techBias').textContent='Data kurang';$('techNote').textContent='Menunggu minimal 10 sampel harga';return}const e9=ema(pts,9),e21=ema(pts,21),last=pts.length-1;let bias='NETRAL',cls='flat';if(e9[last]>e21[last]&&pts[last]>e9[last]){bias='MOMENTUM NAIK';cls='up'}else if(e9[last]<e21[last]&&pts[last]<e9[last]){bias='MOMENTUM TURUN';cls='down'}$('techBias').textContent=bias;$('techBias').className='value '+cls;const pct=((pts[last]-pts[0])/pts[0])*100;$('techNote').textContent=`EMA9 ${money(e9[last])} · EMA21 ${money(e21[last])} · perubahan sampel ${pct.toFixed(2)}%`;const hi=Math.max(...pts),lo=Math.min(...pts);$('volatility').textContent=money(hi-lo);$('chartState').textContent=`${pts.length} sampel · 5 menit`;$('chartNote').textContent='Indikasi momentum dari sampel 5-menit; bukan indikator candle MT5 dan tidak cocok untuk eksekusi presisi M1.';drawChart(pts,e9,e21)}
+function drawChart(vals,e9,e21){const c=$('priceChart'),ctx=c.getContext('2d');const w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#27354d';ctx.lineWidth=1;for(let i=1;i<5;i++){let y=i*h/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}if(vals.length<2)return;const all=vals.concat(e9,e21),min=Math.min(...all),max=Math.max(...all),pad=(max-min)*.12||1;const low=min-pad,high=max+pad;const x=i=>i*w/(vals.length-1),y=v=>h-((v-low)/(high-low))*h;function line(a,color,width){ctx.beginPath();a.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()}line(vals,'#44d6a0',3);line(e9,'#7ca9ff',2);line(e21,'#f6c66b',2);ctx.fillStyle='#91a0bb';ctx.font='18px sans-serif';ctx.fillText('Harga sampel',12,24)}
+async function fetchJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
+async function loadGold(){try{const [spot,series]=await Promise.all([fetchJson(GOLD_API+'/spot?compact=1'),fetchJson(GOLD_API+'/intraday?symbol=xau&hours=24')]);if(!Number.isFinite(Number(spot.spot_usd_oz)))throw new Error('Harga tidak tersedia');lastSpot=spot;intraday=(series.points||[]).map(p=>({t:Number(p.t),p:Number(p.p)})).filter(p=>Number.isFinite(p.p));$('goldPrice').textContent='$'+money(spot.spot_usd_oz);const age=spot.data_state?.age_seconds;const stamp=spot.price_as_of||spot.updated_at;$('goldPriceNote').textContent=`Sumber XAUS · ${stamp?new Date(stamp).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'}):'waktu tidak tersedia'} WIB`;const isStale=spot.data_state?.status==='stale'||spot.stale===true;$('qualityValue').textContent=isStale?'STALE':'LIVE';$('qualityValue').className='value '+(isStale?'flat':'up');$('qualityNote').textContent=isStale?'Harga terakhir tersimpan; bukan data terbaru':`Status ${safeText(spot.data_state?.status)} · usia ${safeText(age)} detik`;$('apiHealth').textContent='API harga: tersambung ('+safeText(spot.source||'XAUS')+')';$('lastSync').textContent='Last successful sync: '+new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})+' WIB';const a=assets.find(x=>x.s==='XAUUSD');a.p='$'+money(spot.spot_usd_oz);a.d=isStale?'Harga tersimpan / stale':'Spot indikatif';$('modeTag').textContent=isStale?'LIVE FEED · DATA STALE':'LIVE FEED · SPOT INDIKATIF';setStatus(isStale?'Feed harga aktif · data terakhir tersimpan':'Feed harga aktif · XAU/USD spot');updateTechnical();renderAssets()}catch(e){$('goldPrice').textContent='Tidak tersedia';$('goldPriceNote').textContent='Feed harga gagal diakses: '+e.message;$('qualityValue').textContent='ERROR';$('qualityNote').textContent='Periksa koneksi atau status penyedia';$('apiHealth').textContent='API harga gagal: '+e.message;$('modeTag').textContent='FEED TIDAK TERSEDIA';setStatus('Feed harga belum dapat diakses');$('chartState').textContent='Tidak tersedia';$('chartNote').textContent='Tidak ada data simulasi yang ditampilkan. Coba muat ulang nanti.'}}
+function isoDate(d){return d.toISOString().slice(0,10)}
+async function loadCalendar(){try{const now=new Date();const from=isoDate(now);const toD=new Date(now);toD.setUTCDate(toD.getUTCDate()+7);const url=CAL_API+'/calendar?from='+from+'&to='+isoDate(toD)+'&country=US&impact=high%2Cmedium&tz=Asia%2FJakarta&limit=100';const data=await fetchJson(url);const events=Array.isArray(data.events)?data.events:[];lastCalendar=data;const body=$('calendarRows');body.innerHTML='';if(!events.length){body.innerHTML='<tr><td colspan="6">Tidak ada event pada rentang ini atau penyedia tidak mengembalikan data.</td></tr>'}events.forEach(ev=>{const tr=document.createElement('tr');const time=ev.time_local?`${ev.date||'—'} ${ev.time_local} WIB`:((ev.date||'—')+' · waktu belum terverifikasi');const name=ev.name||ev.title||ev.series_name||'Event ekonomi';const impact=(ev.impact||'unknown').toLowerCase();const badge=impact==='high'?'TINGGI':impact==='medium'?'SEDANG':impact==='low'?'RENDAH':'—';const link=ev.url||ev.source_url;const titleCell=link?`<a href="${String(link).replaceAll('"','&quot;')}" target="_blank" rel="noopener">${escapeHtml(name)}</a>`:escapeHtml(name);tr.innerHTML=`<td>${escapeHtml(time)}</td><td>${titleCell}${ev.data_stale?' <span class="small">(data stale)</span>':''}</td><td><span class="impact">${badge}</span></td><td>${escapeHtml(safeText(ev.actual))}</td><td>${escapeHtml(safeText(ev.consensus))}</td><td>${escapeHtml(safeText(ev.prior))}</td>`;body.appendChild(tr)});$('calendarState').textContent=`LIVE · ${events.length} event`;if(data.attribution?.url||true)$('apiHealth').textContent=$('apiHealth').textContent+' · Kalender tersambung';}catch(e){$('calendarRows').innerHTML='<tr><td colspan="6">Kalender gagal diakses ('+escapeHtml(e.message)+'). Coba muat ulang. Tidak ada data contoh yang ditampilkan.</td></tr>';$('calendarState').textContent='Feed gagal';}}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+$('assetSelect').addEventListener('change',updateSelected);$('tfSelect').addEventListener('change',updateSelected);
+$('refreshBtn').addEventListener('click',async()=>{const b=$('refreshBtn');b.textContent='Memuat…';await Promise.all([loadGold(),loadCalendar()]);updateTime();b.textContent='Perbarui tampilan'});
+$('exportBtn').addEventListener('click',()=>{const rows=[['Symbol','Name','Price','Status'],...assets.map(a=>[a.s,a.n,a.p,a.d])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='market-watch-live.csv';link.click();URL.revokeObjectURL(url)});
+function updateTime(){const now=new Date();$('nowLabel').textContent=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'short',year:'numeric'}).format(now)+' WIB'}
+renderAssets();updateSelected();updateTime();Promise.all([loadGold(),loadCalendar()]);setInterval(()=>{loadGold();loadCalendar();updateTime()},60000);
 </script>
 </body>
 </html>
