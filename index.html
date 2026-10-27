@@ -89,9 +89,9 @@
 
   <div class="section-head"><h2>Konfirmasi makro</h2><span class="small">Status data aktual harus ditampilkan</span></div>
   <section class="grid3">
-    <div class="panel"><h3 class="card-title">USD Index (DXY)</h3><div class="value flat" id="dxyValue">Belum terhubung</div><p class="small" id="dxyNote">DXY belum disediakan oleh Worker saat ini.</p></div>
+    <div class="panel"><h3 class="card-title">Broad USD Index (proxy, bukan ICE DXY)</h3><div class="value flat" id="dxyValue">Memuat data…</div><p class="small" id="dxyNote">Mengambil indeks dolar berbobot perdagangan dari Federal Reserve/FRED; bukan harga DXY intraday.</p></div>
     <div class="panel"><h3 class="card-title">US Treasury 2Y / 10Y</h3><div class="value flat" id="treasuryValue">Memuat data…</div><p class="small" id="treasuryNote">Mengambil data terbaru dari FRED melalui Cloudflare Worker.</p></div>
-    <div class="panel"><h3 class="card-title">Ekspektasi The Fed</h3><div class="value flat" id="fedExpectValue">Belum terhubung</div><p class="small" id="fedExpectNote">FedWatch belum terhubung; jangan anggap ini sebagai probabilitas terkini.</p></div>
+    <div class="panel"><h3 class="card-title">Kondisi kebijakan The Fed (data publik)</h3><div class="value flat" id="fedExpectValue">Memuat data…</div><p class="small" id="fedExpectNote">Suku bunga target saat ini dan EFFR; bukan probabilitas keputusan rapat berikutnya.</p></div>
   </section>
 
   <div class="section-head"><h2>Sumber dan kesehatan data</h2></div>
@@ -104,6 +104,26 @@
 </div>
 <script>
 const WORKER_API='https://market-intelligence-api.takaaat7-26b.workers.dev';
+async function loadDollarIndex(){
+  const valueEl=document.getElementById('dxyValue'), noteEl=document.getElementById('dxyNote');
+  try {
+    const r=await fetch(WORKER_API+'/api/dollar-index',{cache:'no-store'}); const j=await r.json();
+    if(!r.ok || j.status!=='success' || !j.latest) throw new Error(j.message||('HTTP '+r.status));
+    valueEl.textContent=Number(j.latest.value).toFixed(2)+(j.change_percent==null?'':` (${j.change_percent>=0?'+':''}${Number(j.change_percent).toFixed(2)}%)`);
+    valueEl.className='value '+(j.change_percent==null?'flat':j.change_percent>=0?'up':'down');
+    noteEl.textContent=`FRED · Broad trade-weighted USD index (bukan ICE DXY) · observasi ${j.latest.date}; perubahan vs observasi sebelumnya${j.previous?' '+j.previous.date:''}. Data harian, dapat tertinggal.`;
+  } catch(e) { valueEl.textContent='Tidak tersedia'; valueEl.className='value flat'; noteEl.textContent='Indeks dolar gagal dimuat: '+e.message+'. Tidak menampilkan angka perkiraan.'; }
+}
+async function loadFedPolicy(){
+  const valueEl=document.getElementById('fedExpectValue'), noteEl=document.getElementById('fedExpectNote');
+  try {
+    const r=await fetch(WORKER_API+'/api/fed-policy',{cache:'no-store'}); const j=await r.json();
+    if(!r.ok || j.status!=='success' || !j.target_lower || !j.target_upper) throw new Error(j.message||('HTTP '+r.status));
+    valueEl.textContent=`Target ${Number(j.target_lower.value_percent).toFixed(2)}–${Number(j.target_upper.value_percent).toFixed(2)}%`+(j.effr?` · EFFR ${Number(j.effr.value_percent).toFixed(2)}%`:'');
+    valueEl.className='value flat';
+    noteEl.textContent=`FRED · Target range observasi ${j.target_lower.observation_date}; EFFR ${j.effr?j.effr.observation_date:'tidak tersedia'}. Ini kondisi kebijakan terkini, BUKAN probabilitas atau prediksi rapat FOMC berikutnya.`;
+  } catch(e) { valueEl.textContent='Tidak tersedia'; valueEl.className='value flat'; noteEl.textContent='Data kebijakan The Fed gagal dimuat: '+e.message+'. Tidak menampilkan angka perkiraan.'; }
+}
 async function loadTreasury(){
   const valueEl=document.getElementById('treasuryValue');
   const noteEl=document.getElementById('treasuryNote');
@@ -159,10 +179,10 @@ function eventTimeWIB(ev){const instant=ev.release_at_utc||ev.time_utc||ev.relea
 async function loadCalendar(){try{const now=new Date();/* API filters use publisher-local dates; query New York dates, then render exact UTC instants in WIB. */const from=dateInZone(now,'America/New_York');const to=shiftDate(from,10);const url=CAL_API+'/calendar?from='+from+'&to='+to+'&country=US&impact=high%2Cmedium&tz=Asia%2FJakarta&limit=100';const data=await fetchJson(url);const events=Array.isArray(data.events)?data.events:[];lastCalendar=data;updateNewsRisk(events);const body=$('calendarRows');body.innerHTML='';if(!events.length){updateNewsRisk([]);body.innerHTML='<tr><td colspan="6">Tidak ada event pada rentang ini atau penyedia tidak mengembalikan data.</td></tr>'}events.forEach(ev=>{const tr=document.createElement('tr');const time=eventTimeWIB(ev);const name=ev.name||ev.title||ev.series_name||'Event ekonomi';const impact=(ev.impact||'unknown').toLowerCase();const badge=impact==='high'?'TINGGI':impact==='medium'?'SEDANG':impact==='low'?'RENDAH':'—';const link=ev.url||ev.source_url;const titleCell=link?`<a href="${String(link).replaceAll('"','&quot;')}" target="_blank" rel="noopener">${escapeHtml(name)}</a>`:escapeHtml(name);tr.innerHTML=`<td>${escapeHtml(time)}</td><td>${titleCell}${ev.data_stale?' <span class="small">(data stale)</span>':''}${ev.status==='estimated'?' <span class="small">(jadwal estimasi)</span>':''}</td><td><span class="impact">${badge}</span></td><td>${escapeHtml(safeText(ev.actual))}</td><td>${escapeHtml(safeText(ev.consensus))}</td><td>${escapeHtml(safeText(ev.prior))}</td>`;body.appendChild(tr)});$('calendarState').textContent=`LIVE · ${events.length} event`;$('apiHealth').textContent=$('apiHealth').textContent+' · Kalender tersambung';}catch(e){$('calendarRows').innerHTML='<tr><td colspan="6">Kalender gagal diakses ('+escapeHtml(e.message)+'). Coba muat ulang. Tidak ada data contoh yang ditampilkan.</td></tr>';$('calendarState').textContent='Feed gagal';}}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 $('assetSelect').addEventListener('change',updateSelected);$('tfSelect').addEventListener('change',updateSelected);
-$('refreshBtn').addEventListener('click',async()=>{const b=$('refreshBtn');b.textContent='Memuat…';await Promise.all([loadGold(),loadCalendar()]);updateTime();b.textContent='Perbarui tampilan'});
+$('refreshBtn').addEventListener('click',async()=>{const b=$('refreshBtn');b.textContent='Memuat…';await Promise.all([loadGold(),loadCalendar(),loadTreasury(),loadDollarIndex(),loadFedPolicy()]);updateTime();b.textContent='Perbarui tampilan'});
 $('exportBtn').addEventListener('click',()=>{const rows=[['Symbol','Name','Price','Status'],...assets.map(a=>[a.s,a.n,a.p,a.d])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='market-watch-live.csv';link.click();URL.revokeObjectURL(url)});
 function updateTime(){const now=new Date();$('nowLabel').textContent=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'short',year:'numeric'}).format(now)+' WIB'}
-renderAssets();updateSelected();updateTime();Promise.all([loadGold(),loadCalendar(),loadTreasury()]);setInterval(()=>{loadGold();loadCalendar();loadTreasury();updateTime()},60000);
+renderAssets();updateSelected();updateTime();Promise.all([loadGold(),loadCalendar(),loadTreasury(),loadDollarIndex(),loadFedPolicy()]);setInterval(()=>{loadGold();loadCalendar();loadTreasury();loadDollarIndex();loadFedPolicy();updateTime()},60000);
 </script>
 </body>
 </html>
